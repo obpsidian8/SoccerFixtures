@@ -125,8 +125,7 @@ class SoccerScoresScraper:
             if not match_day_groups[f"Matchday{matchday_num}"]:
                 match_day_groups.pop(f"Matchday{matchday_num}")
 
-            # if additional_matchday_done_flag:
-            #     break
+
 
         logger.info(f"All match fixtures: {json.dumps(match_day_groups, indent=2)}")
         logger.info("Got all current fixtures")
