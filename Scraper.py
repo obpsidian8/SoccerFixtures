@@ -8,11 +8,11 @@ logger = set_logging(__name__)
 
 
 class League(Enum):
-    PERMIER_LEAGUE = "Premier league matches"
-    LA_LIGA = "La liga marches"
+    PERMIER_LEAGUE = "Premier League matches"
+    LA_LIGA = "La liga matches"
     BUNDESLIGA = "Bundesliga matches"
-    SERIA = "Seria matches"
-    CHAMPIONS_LEAGUE = "Chanpions league matches"
+    SERIEA = "Serie A matches"
+    CHAMPIONS_LEAGUE = "Champions League matches"
 
 
 class SoccerScoresScraper:
@@ -66,13 +66,18 @@ class SoccerScoresScraper:
                 match_day_text = self.navigator.get_element_text(xpath=current_fixture_xpath)
                 match_day_text = match_day_text.replace("\n", "#")
                 logger.info(f'Fixture text for index {fixture_num} in matchday {matchday_num}: {match_day_text}\n')
+                if not match_day_text:
+                    continue
 
                 teams_and_scores_regex = re.compile(r'#(\d+)#([\w+\s]+)')
                 teams_and_scores_search_results = teams_and_scores_regex.findall(match_day_text)
 
-                # if not teams_and_scores_search_results: #For upcoming matches with no scores yet
-                #     teams_and_scores_regex = re.compile(r'#([a-zA-Z\s]+)')
-                #     teams_and_scores_search_results  = teams_and_scores_regex.findall(match_day_text)
+                if matchday_num > 0:
+                    if not teams_and_scores_search_results: #For upcoming matches with no scores yet
+                        teams_and_scores_regex = re.compile(r'#([a-zA-Z\s]+)')
+                        teams_and_scores_search_results  = teams_and_scores_regex.findall(match_day_text)
+                        teams_and_scores_search_results[0] = ("upcoming", teams_and_scores_search_results[0])
+                        teams_and_scores_search_results[1] = ("upcoming", teams_and_scores_search_results[1])
 
                 logger.info(
                     f"teams_and_scores_search_results for fixture index {fixture_num} in matchday {matchday_num}: {teams_and_scores_search_results}")
@@ -83,6 +88,9 @@ class SoccerScoresScraper:
 
                 date_regex = re.compile(r'FT#(.+?)#')
                 date_search_results = date_regex.findall(match_day_text)
+                if not date_search_results:
+                    date_regex = re.compile(r'(\w{3}.+?)#\d')
+                    date_search_results = date_regex.findall(match_day_text)
 
                 match_day_html = self.navigator.getHtmlElementObjectAsText(xpath=current_fixture_xpath)
                 youtube_link_regex = re.compile(r'(https:\/\/www\.youtube\.com\/watch\?v=.+?)&')
@@ -99,14 +107,12 @@ class SoccerScoresScraper:
                 fixture_json_results["Teams"] = {}
 
                 fixture_json_results["FixtureNum"] = f"FixtureNum{fixture_num+1}"
-                if hide_scores:
+                if hide_scores and teams_and_scores_search_results[0][0] != "upcoming":
                     fixture_json_results["Teams"][teams_and_scores_search_results[0][1]] = "**"
                     fixture_json_results["Teams"][teams_and_scores_search_results[1][1]] = "**"
                 else:
-                    fixture_json_results["Teams"][teams_and_scores_search_results[0][1]] = \
-                    teams_and_scores_search_results[0][0]
-                    fixture_json_results["Teams"][teams_and_scores_search_results[1][1]] = \
-                    teams_and_scores_search_results[1][0]
+                    fixture_json_results["Teams"][teams_and_scores_search_results[0][1]] = teams_and_scores_search_results[0][0]
+                    fixture_json_results["Teams"][teams_and_scores_search_results[1][1]] = teams_and_scores_search_results[1][0]
 
                 if youtube_link_search_results:
                     fixture_json_results["Highlights"] = youtube_link_search_results[0]
@@ -141,7 +147,7 @@ def run_scraper():
     chrome_driver = get_chrome_driver(dataDirName="SoccerMatchesScraper")
     navigator = SelemiumPageNavigetor(chrome_driver)
 
-    scraper = SoccerScoresScraper(navigator, league=League.PERMIER_LEAGUE)
+    scraper = SoccerScoresScraper(navigator, league=League.CHAMPIONS_LEAGUE)
     scraper.get_results_page()
     scraper.enter_search_term()
     all_fixtures_and_links = scraper.get_current_match_day_data(hide_scores=False)
