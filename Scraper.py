@@ -40,12 +40,14 @@ class SoccerScoresScraper:
     def get_current_match_day_data(self, hide_scores=False):
         all_match_day_xpath = "(//div[contains(@data-title, 'Matchday')])"
 
-        num_match_days_displayed = self.navigator.get_number_of_elements(xpath=all_match_day_xpath)
+        num_match_days_displayed = self.navigator.get_number_of_elements(xpath=all_match_day_xpath,time_delay=1)
         logger.info(f"num_match_days_displayed for {self.league.name}: {num_match_days_displayed}")
 
         match_day_groups = {}
 
         for matchday_num in range(num_match_days_displayed):
+            if matchday_num == 0:
+                continue
             match_day_groups[f"Matchday{matchday_num}"] = []
 
             current_match_day_xpath = f"{all_match_day_xpath}[{matchday_num + 1}]/.."
@@ -57,45 +59,46 @@ class SoccerScoresScraper:
             match_fixture_xpath_relative = "//td[contains(@class, 'liveresults-sports-immersive')]"
 
             complete_match_fixture_xpath = f"({current_match_list_summary_xpath}{match_fixture_xpath_relative})"
-            num_matches = self.navigator.get_number_of_elements(xpath=complete_match_fixture_xpath)
+            num_matches = self.navigator.get_number_of_elements(xpath=complete_match_fixture_xpath, time_delay=1)
             logger.info(f"Number of matches for matchday {matchday_num}: {num_matches}")
 
             for fixture_num in range(num_matches):
                 current_fixture_xpath = f"({complete_match_fixture_xpath})[{fixture_num + 1}]"
 
-                match_day_text = self.navigator.get_element_text(xpath=current_fixture_xpath)
-                match_day_text = match_day_text.replace("\n", "#")
-                logger.info(f'Fixture text for index {fixture_num} in matchday {matchday_num}: {match_day_text}\n')
-                if not match_day_text:
+                match_day_html = self.navigator.getHtmlElementObjectAsText(xpath=current_fixture_xpath)
+
+                # match_day_html = match_day_html.replace("\n", "#")
+                logger.info(f'Fixture text for index {fixture_num} in matchday {matchday_num}: {match_day_html}\n')
+                if not match_day_html or 'class="liveresults-sports-immersive__empty-tile' in  match_day_html:
                     continue
 
-                teams_and_scores_regex = re.compile(r'#(\d+)#([\w+\s]+)')
-                teams_and_scores_search_results = teams_and_scores_regex.findall(match_day_text)
+                teams_and_scores_regex = re.compile(r'class="imspo_mt__tt-w">(.+?)<[\s\S]*?data-df-team-mid[\s\S]*?aria-hidden="true">(.+?)<')
+                teams_and_scores_search_results = teams_and_scores_regex.findall(match_day_html)
 
                 if matchday_num > 0:
                     if not teams_and_scores_search_results: #For upcoming matches with no scores yet
-                        teams_and_scores_regex = re.compile(r'#([a-zA-Z\s]+)')
-                        teams_and_scores_search_results  = teams_and_scores_regex.findall(match_day_text)
+                        teams_and_scores_regex = re.compile(r'><div class="liveresults-sports-immersive__hide-element">(.+?)<')
+                        teams_and_scores_search_results  = teams_and_scores_regex.findall(match_day_html)
                         teams_and_scores_search_results[0] = ("upcoming", teams_and_scores_search_results[0])
                         teams_and_scores_search_results[1] = ("upcoming", teams_and_scores_search_results[1])
 
-                logger.info(
-                    f"teams_and_scores_search_results for fixture index {fixture_num} in matchday {matchday_num}: {teams_and_scores_search_results}")
+                logger.info(f"teams_and_scores_search_results for fixture index {fixture_num} in matchday {matchday_num}: {teams_and_scores_search_results}")
 
                 if len(teams_and_scores_search_results) < 1:
                     # Process upcoming match fixture
                     continue
 
-                date_regex = re.compile(r'FT#(.+?)#')
-                date_search_results = date_regex.findall(match_day_text)
+                date_regex = re.compile(r'match-status[\s\S]*?imspo_mt[\s\S]*?aria-label.+?">(.+?)<')
+                date_search_results = date_regex.findall(match_day_html)
                 if not date_search_results:
-                    date_regex = re.compile(r'(\w{3}.+?)#\d')
-                    date_search_results = date_regex.findall(match_day_text)
+                    date_regex = re.compile(r'imspo_mt__date">(.+?)<')
+                    date_search_results = date_regex.findall(match_day_html)
+                    if not date_search_results:
+                        continue
 
-                match_day_html = self.navigator.getHtmlElementObjectAsText(xpath=current_fixture_xpath)
+                # match_day_html = self.navigator.getHtmlElementObjectAsText(xpath=current_fixture_xpath)
                 youtube_link_regex = re.compile(r'(https:\/\/www\.youtube\.com\/watch\?v=.+?)&')
-                youtube_thumbnail_regex = re.compile(
-                    r'https:\/\/www\.youtube\.com\/watch\?v=.+?&[\s\S]*?img\s+class.+?src="(.+?)"')
+                youtube_thumbnail_regex = re.compile(r'https:\/\/www\.youtube\.com\/watch\?v=.+?&[\s\S]*?img\s+class.+?src="(.+?)"')
 
                 youtube_link_search_results = youtube_link_regex.findall(match_day_html)
                 logger.info(f"Youtube Links: {youtube_link_search_results}")
@@ -144,13 +147,13 @@ class SoccerScoresScraper:
 
 
 def run_scraper():
-    chrome_driver = get_chrome_driver(dataDirName="SoccerMatchesScraper")
+    chrome_driver = get_chrome_driver(dataDirName="SoccerMatchesScraper", headless=False)
     navigator = SelemiumPageNavigetor(chrome_driver)
 
-    scraper = SoccerScoresScraper(navigator, league=League.CHAMPIONS_LEAGUE)
+    scraper = SoccerScoresScraper(navigator, league=League.PERMIER_LEAGUE)
     scraper.get_results_page()
     scraper.enter_search_term()
-    all_fixtures_and_links = scraper.get_current_match_day_data(hide_scores=False)
+    all_fixtures_and_links = scraper.get_current_match_day_data(hide_scores=True)
 
     logger.info("done")
 
