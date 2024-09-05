@@ -150,7 +150,7 @@ def run_scraper():
     chrome_driver = get_chrome_driver(dataDirName="SoccerMatchesScraper", headless=False)
     navigator = SelemiumPageNavigetor(chrome_driver)
 
-    scraper = SoccerScoresScraper(navigator, league=League.PERMIER_LEAGUE)
+    scraper = SoccerScoresScraper(navigator, league=League.BUNDESLIGA)
     scraper.get_results_page()
     scraper.enter_search_term()
     all_fixtures_and_links = scraper.get_current_match_day_data(hide_scores=True)
