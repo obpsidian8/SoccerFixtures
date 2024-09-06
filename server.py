@@ -1,7 +1,6 @@
-from re import T
 from flask import Flask, request
 from Scraper import SoccerScoresScraper, League
-from SeleniumPageNavigator import SelemiumPageNavigetor, get_chrome_driver
+from HelperFunctions.SeleniumPageNavigator import SelemiumPageNavigetor, get_chrome_driver
 
 app = Flask(__name__)
 

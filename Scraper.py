@@ -1,5 +1,5 @@
-from SeleniumPageNavigator import SelemiumPageNavigetor, get_chrome_driver
-from LoggingModule import set_logging
+from HelperFunctions.SeleniumPageNavigator import SelemiumPageNavigetor, get_chrome_driver
+from HelperFunctions.LoggingModule import set_logging
 from enum import Enum
 import json
 import re
@@ -139,7 +139,7 @@ class SoccerScoresScraper:
         logger.info(f"All match fixtures: {json.dumps(match_day_groups, indent=2)}")
         logger.info("Got all current fixtures")
 
-        file_name = f'{self.league.value.replace(" ", "_")}.json'
+        file_name = f'scraping_results/{self.league.value.replace(" ", "_")}.json'
         with open(file_name, "w") as f:
             json.dump(match_day_groups, f)
 
@@ -150,10 +150,10 @@ def run_scraper():
     chrome_driver = get_chrome_driver(dataDirName="SoccerMatchesScraper", headless=False)
     navigator = SelemiumPageNavigetor(chrome_driver)
 
-    scraper = SoccerScoresScraper(navigator, league=League.BUNDESLIGA)
+    scraper = SoccerScoresScraper(navigator, league=League.PERMIER_LEAGUE)
     scraper.get_results_page()
     scraper.enter_search_term()
-    all_fixtures_and_links = scraper.get_current_match_day_data(hide_scores=True)
+    all_fixtures_and_links = scraper.get_current_match_day_data(hide_scores=False)
 
     logger.info("done")
 

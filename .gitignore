@@ -2,10 +2,6 @@
 .venv/*
 .idea/*
 __pycache__/*
-Seria_matches.json
-La_liga_marches.json
-Premier_league_matches.json
-Champions_league_matches.json
-Premier_league_matches.json
-Chanpions_league_matches.json
-Premier_league_matches.json
+__pycache__/
+scraping_results/*
+
